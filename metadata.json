@@ -1,0 +1,5 @@
+{
+  "name": "PDF Image Extractor",
+  "description": "An interactive web application that allows users to upload a PDF file and extracts all embedded images for viewing and downloading.",
+  "requestFramePermissions": []
+}
