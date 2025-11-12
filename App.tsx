@@ -55,43 +55,56 @@ const App: React.FC = () => {
             const operatorList = await page.getOperatorList();
             
             for (let j = 0; j < operatorList.fnArray.length; j++) {
-                if (operatorList.fnArray[j] === pdfjsLib.OPS.paintImageXObject) {
-                    const imageName = operatorList.argsArray[j][0];
+                if (operatorList.fnArray[j] !== pdfjsLib.OPS.paintImageXObject) {
+                    continue;
+                }
+                
+                const imageName = operatorList.argsArray[j][0];
+                try {
                     const image = await page.objs.get(imageName);
 
-                    if (image && image.data) {
-                      const canvas = document.createElement('canvas');
-                      canvas.width = image.width;
-                      canvas.height = image.height;
-                      const ctx = canvas.getContext('2d');
-                      if (ctx) {
-                        const imageData = ctx.createImageData(image.width, image.height);
-                        
-                        // Handle different image color spaces (e.g., RGB, CMYK, Grayscale)
-                        if (image.data.length === image.width * image.height * 3) { // RGB
-                          let k = 0;
-                          for (let l = 0; l < image.data.length; l += 3) {
-                            imageData.data[k++] = image.data[l];
-                            imageData.data[k++] = image.data[l + 1];
-                            imageData.data[k++] = image.data[l + 2];
-                            imageData.data[k++] = 255; // Alpha
-                          }
-                        } else if (image.data.length === image.width * image.height) { // Grayscale
-                          let k = 0;
-                          for (let l = 0; l < image.data.length; l++) {
-                            imageData.data[k++] = image.data[l];
-                            imageData.data[k++] = image.data[l];
-                            imageData.data[k++] = image.data[l];
-                            imageData.data[k++] = 255;
-                          }
-                        } else { // Assume RGBA or something we can directly copy
-                           imageData.data.set(image.data);
-                        }
-
-                        ctx.putImageData(imageData, 0, 0);
-                        extractedImages.push(canvas.toDataURL('image/png'));
-                      }
+                    if (!image?.data) {
+                        continue;
                     }
+
+                    const { width, height, data } = image;
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    
+                    if (!ctx) {
+                        continue;
+                    }
+                    
+                    const imageData = ctx.createImageData(width, height);
+                    const numPixels = width * height;
+
+                    if (data.length === numPixels * 4) { // RGBA
+                        imageData.data.set(data);
+                    } else if (data.length === numPixels * 3) { // RGB
+                        for (let k = 0, l = 0; k < data.length; k += 3, l += 4) {
+                            imageData.data[l] = data[k];
+                            imageData.data[l + 1] = data[k + 1];
+                            imageData.data[l + 2] = data[k + 2];
+                            imageData.data[l + 3] = 255;
+                        }
+                    } else if (data.length === numPixels) { // Grayscale
+                        for (let k = 0, l = 0; k < data.length; k++, l += 4) {
+                            imageData.data[l] = data[k];
+                            imageData.data[l + 1] = data[k];
+                            imageData.data[l + 2] = data[k];
+                            imageData.data[l + 3] = 255;
+                        }
+                    } else {
+                        console.warn(`Unhandled image format or data length (${data.length}) for image of size ${width}x${height}.`, image);
+                        continue;
+                    }
+
+                    ctx.putImageData(imageData, 0, 0);
+                    extractedImages.push(canvas.toDataURL('image/png'));
+                } catch(e) {
+                    console.error(`Could not process image ${imageName} on page ${i}:`, e);
                 }
             }
           }

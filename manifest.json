@@ -1,0 +1,16 @@
+{
+  "name": "PDF Image Extractor",
+  "short_name": "PDF Extractor",
+  "description": "An interactive web application that allows users to upload a PDF file and extracts all embedded images for viewing and downloading.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111827",
+  "theme_color": "#4f46e5",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
